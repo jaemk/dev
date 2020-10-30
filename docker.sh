@@ -8,7 +8,7 @@ tag="$(git rev-parse HEAD | head -c 7 | awk '{ printf "%s", $0 }')"
 echo "building images... latest, $tag "
 
 tagged_image="jaemk/dev:$tag"
-latest_image="james/dev:latest"
+latest_image="jaemk/dev:latest"
 
 docker build -t $tagged_image .
 docker build -t $latest_image .
@@ -38,7 +38,7 @@ fi
 if [ "$1" = "run" ]; then
     echo "running..."
     set -x
-    docker run --net=host --rm -it --init $ports $envs $envfile jaemk/badge-cache:latest
+    docker run --net=host --rm -it --init $ports $envs $envfile $latest_image
 elif [ "$1" = "push" ]; then
     echo "pushing images..."
     set -x
