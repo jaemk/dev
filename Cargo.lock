@@ -583,6 +583,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "dev"
+version = "0.0.0"
+dependencies = [
+ "actix-service",
+ "actix-web",
+ "anyhow",
+ "chrono",
+ "futures",
+ "lazy_static",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "slog",
+ "slog-async",
+ "slog-json",
+ "slog-term",
+]
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1255,25 +1274,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e0704ee1a7e00d7bb417d0770ea303c1bccbabf0ef1667dae92b5967f5f8a71"
 dependencies = [
  "unicode-xid",
-]
-
-[[package]]
-name = "proxy"
-version = "0.0.0"
-dependencies = [
- "actix-service",
- "actix-web",
- "anyhow",
- "chrono",
- "futures",
- "lazy_static",
- "serde",
- "serde_derive",
- "serde_json",
- "slog",
- "slog-async",
- "slog-json",
- "slog-term",
 ]
 
 [[package]]

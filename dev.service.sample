@@ -1,0 +1,21 @@
+# systemd config
+# copy to /lib/systemd/system/dev.service
+#
+# systemctl daemon-reload
+# systemctl enable homepage.service
+# systemctl start homepage
+# systemctl status homepage.service
+# # tail the log
+# journalctl -f -u homepage
+[Unit]
+Description=Dev Server
+
+[Service]
+WorkingDirectory=/$dir/dev
+ExecStart=/$dir/bin/dev
+Restart=on-failure
+EnvironmentFile=/$dir/bin/env.prod
+
+[Install]
+WantedBy=multi-user.target
+
