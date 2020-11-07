@@ -1,4 +1,7 @@
+use actix_files::Files;
 use actix_web::{client, web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use rustls::internal::pemfile::{certs, pkcs8_private_keys};
+use rustls::{NoClientAuth, ServerConfig};
 
 use crate::{CONFIG, LOG};
 
@@ -27,18 +30,19 @@ async fn forward(
         let port = if parts[1].is_empty() {
             80
         } else {
-            parts[1]
-                .trim_start_matches(':')
-                .parse::<u16>()
+            let port = parts[1].trim_start_matches(':');
+            port.parse::<u16>()
+                .map_err(|e| anyhow::anyhow!("invalid port {}, {}", port, e))
                 .expect("invaild port")
         };
         (sub_domain, port)
     } else if parts.len() == 1 {
         let part = parts[0];
         if part.contains(':') {
-            let port = part
-                .trim_start_matches(':')
+            let port = parts[1].trim_start_matches(':');
+            let port = port
                 .parse::<u16>()
+                .map_err(|e| anyhow::anyhow!("invalid port {}, {}", port, e))
                 .expect("invaild port");
             (None, port)
         } else {
@@ -108,16 +112,52 @@ async fn forward(
 
 pub async fn start() -> anyhow::Result<()> {
     let addr = format!("{}:{}", CONFIG.host, CONFIG.port);
+    let ssl_addr = format!("{}:{}", CONFIG.host, CONFIG.ssl_port);
     slog::info!(LOG, "** Listening on {} **", addr);
+
+    let mut config = ServerConfig::new(NoClientAuth::new());
+    let cert_file = &mut std::io::BufReader::new(
+        std::fs::File::open("bin/cert.pem").expect("failed to open cert"),
+    );
+    let key_file = &mut std::io::BufReader::new(
+        std::fs::File::open("bin/key.pem").expect("failed to open key"),
+    );
+    let cert_chain = certs(cert_file).expect("failed to load cert");
+    let mut keys = pkcs8_private_keys(key_file).expect("failed to load key");
+    config.set_single_cert(cert_chain, keys.remove(0)).unwrap();
+
+    let serve_ssl = || async move {
+        HttpServer::new(|| {
+            App::new()
+                .data(client::Client::new())
+                .wrap(crate::logger::Logger::new())
+                .service(web::resource("/.status").route(web::get().to(status)))
+                .service(Files::new("/.static", "static"))
+                .service(Files::new("/.well-known", "static/.well-known"))
+                .default_service(web::route().to(forward))
+        })
+        .bind_rustls(&ssl_addr, config)
+        .expect(&format!("failed to bind to {}", ssl_addr))
+        .run()
+        .await
+        .expect("error running ssl server")
+    };
+    actix_web::rt::spawn(serve_ssl());
 
     HttpServer::new(|| {
         App::new()
             .data(client::Client::new())
             .wrap(crate::logger::Logger::new())
+            .service(web::resource("/.status").route(web::get().to(status)))
+            .service(Files::new("/.static", "static"))
+            .service(Files::new("/.well-known", "static/.well-known"))
             .default_service(web::route().to(forward))
     })
-    .bind(addr)?
+    .bind(&addr)
+    .expect(&format!("failed to bind to {}", addr))
     .run()
-    .await?;
+    .await
+    .expect("error running server");
+
     Ok(())
 }

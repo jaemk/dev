@@ -44,6 +44,7 @@ pub struct Config {
     pub version: String,
     pub host: String,
     pub port: u16,
+    pub ssl_port: u16,
     pub log_format: String,
     pub log_level: String,
     pub this_host_name: String,
@@ -62,6 +63,7 @@ impl Config {
             version,
             host: env_or("HOST", "0.0.0.0"),
             port: env_or("PORT", "80").parse().expect("invalid port"),
+            ssl_port: env_or("SSL_PORT", "443").parse().expect("invalid port"),
             log_format: env_or("LOG_FORMAT", "json")
                 .to_lowercase()
                 .trim()
@@ -79,6 +81,7 @@ impl Config {
             "version" => &CONFIG.version,
             "host" => &CONFIG.host,
             "port" => &CONFIG.port,
+            "ssl_port" => &CONFIG.ssl_port,
             "log_format" => &CONFIG.log_format,
             "log_level" => &CONFIG.log_level,
             "this_host_name" => &CONFIG.this_host_name,
