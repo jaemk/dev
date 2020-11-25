@@ -13,5 +13,7 @@ A simple dev http proxy that should just be an nginx configuration, but I wanted
 **Generate cert**
 
 ```
-certbot certonly -a webroot --webroot-path $PROJECT_ROOT/static --email $EMAIL -d $DOMAIN
+./certs.sh new
+
+./certs.sh renew
 ```

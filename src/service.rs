@@ -18,6 +18,7 @@ async fn forward(
     client: web::Data<client::Client>,
 ) -> Result<HttpResponse, Error> {
     let host = req.connection_info().host().to_string();
+    slog::info!(LOG, "forwarding for host: {}", host);
     let parts = host.split(&CONFIG.this_host_name).collect::<Vec<_>>();
 
     let (sub_domain, port) = if parts.len() == 2 {
@@ -39,7 +40,7 @@ async fn forward(
     } else if parts.len() == 1 {
         let part = parts[0];
         if part.contains(':') {
-            let port = parts[1].trim_start_matches(':');
+            let port = part.trim_start_matches(':');
             let port = port
                 .parse::<u16>()
                 .map_err(|e| anyhow::anyhow!("invalid port {}, {}", port, e))

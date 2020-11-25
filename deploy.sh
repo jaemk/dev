@@ -12,5 +12,8 @@ if [ -f bin/dev ]; then
     rm bin/dev-running
 else
     cp target/release/dev bin/dev
+    sudo systemctl restart dev
 fi
+
+./certs.sh renew
 
