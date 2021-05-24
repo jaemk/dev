@@ -1,14 +1,18 @@
-# systemd config
-# copy to /lib/systemd/system/dev.service
+### systemd config
+# sudo cp dev.service.sample /etc/systemd/system/dev.service
+# sudo chmod 644 /etc/systemd/system/dev.service
 #
 # systemctl daemon-reload
-# systemctl enable homepage.service
-# systemctl start homepage
-# systemctl status homepage.service
+# systemctl enable dev.service
+# systemctl start dev
+# systemctl status dev.service
 # # tail the log
 # journalctl -f -u homepage
+#
 [Unit]
 Description=Dev Server
+After=network.target
+StartLimitIntervalSec=0
 
 [Service]
 WorkingDirectory=/$dir/dev
