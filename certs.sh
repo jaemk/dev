@@ -32,14 +32,8 @@ fi
 
 
 echo "copying cert files to bin/"
-
-if [ ! -e bin/cert.pem ]; then
-    sudo cp /etc/letsencrypt/live/$DOMAIN/fullchain.pem bin/cert.pem
-fi
-
-if [ ! -e bin/key.pem ]; then
-    sudo cp /etc/letsencrypt/live/$DOMAIN/privkey.pem bin/key.pem
-    # change to -rw-r--r-- permissions
-    sudo chmod 644 bin/key.pem
-fi
+sudo cp /etc/letsencrypt/live/$DOMAIN/fullchain.pem bin/cert.pem
+sudo cp /etc/letsencrypt/live/$DOMAIN/privkey.pem bin/key.pem
+# change to -rw-r--r-- permissions
+sudo chmod 644 bin/key.pem
 
