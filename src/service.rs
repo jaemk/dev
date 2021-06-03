@@ -138,7 +138,7 @@ pub async fn start() -> anyhow::Result<()> {
                 .default_service(web::route().to(forward))
         })
         .bind_rustls(&ssl_addr, config)
-        .expect(&format!("failed to bind to {}", ssl_addr))
+        .unwrap_or_else(|e| panic!("failed to bind to {} {:?}", ssl_addr, e))
         .run()
         .await
         .expect("error running ssl server")
@@ -155,7 +155,7 @@ pub async fn start() -> anyhow::Result<()> {
             .default_service(web::route().to(forward))
     })
     .bind(&addr)
-    .expect(&format!("failed to bind to {}", addr))
+    .unwrap_or_else(|e| panic!("failed to bind to {} {:?}", addr, e))
     .run()
     .await
     .expect("error running server");

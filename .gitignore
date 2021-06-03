@@ -2,3 +2,4 @@
 commit_hash.txt
 /bin
 .env.local
+.idea/
