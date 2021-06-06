@@ -37,3 +37,12 @@ sudo cp /etc/letsencrypt/live/$DOMAIN/privkey.pem bin/key.pem
 # change to -rw-r--r-- permissions
 sudo chmod 644 bin/key.pem
 
+
+# Todo: setup auto dns cert challenge
+# https://serverfault.com/questions/750902/how-to-use-lets-encrypt-dns-challenge-validation
+# https://www.digitalocean.com/community/questions/change-dns-records-via-doctl
+# https://computingforgeeks.com/using-letsencrypt-wildcard-certificate-nginx-apache/
+# https://certbot.eff.org/docs/using.html#hooks
+#
+# ::: doctl compute domain records list jaemk.me
+# ::: doctl compute domain records list jaemk.me | rg challenge | awk '{print $1}' | xargs -I {} sh -c 'doctl compute domain records delete jaemk.me {} -f'
