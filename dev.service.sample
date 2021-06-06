@@ -7,7 +7,7 @@
 # systemctl start dev
 # systemctl status dev.service
 # # tail the log
-# journalctl -f -u homepage
+# journalctl -f -u dev
 #
 [Unit]
 Description=Dev Server
