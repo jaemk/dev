@@ -106,6 +106,12 @@ async fn forward(
                     .header("Location", redirect)
                     .finish())
             }
+            "www." => {
+                slog::info!(LOG, "redirecting www. to jaemk.me");
+                Ok(HttpResponse::TemporaryRedirect()
+                    .header("Location", "https://jaemk.me")
+                    .finish())
+            }
             _ => Ok(HttpResponse::NotFound().body("nothing to see here")),
         },
     }

@@ -1,5 +1,6 @@
 /target
 commit_hash.txt
-/bin
+/bin/*
+!/bin/.gitkeep
 .env.local
 .idea/

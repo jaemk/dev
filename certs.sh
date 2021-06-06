@@ -7,22 +7,50 @@ cmd="$1"
 if [ -z "$DOMAIN" ]; then
     echo "DOMAIN must be defined"
 fi
+if [ -z "$PROJECT_ROOT" ]; then
+    echo "PROJECT_ROOT must be defined"
+fi
+if [ -z "$AUTH_HOOK" ]; then
+    echo "AUTH_HOOK must be defined"
+fi
+if [ -z "$CLEANUP_HOOK" ]; then
+    echo "CLEANUP_HOOK must be defined"
+fi
+
+if [ -z "$DRY_RUN" ]; then
+    echo "DRY_RUN must be defined"
+fi
+
+dryrun="--dry-run"
+if [[ "$DRY_RUN" = "false" ]]; then
+    dryrun=""
+fi
+
 
 if [ "$cmd" = "new" ]; then
-    if [ -z "$PROJECT_ROOT" ]; then
-        echo "PROJECT_ROOT must be defined"
-    fi
     if [ -z "$EMAIL" ]; then
         echo "EMAIL must be defined"
+        exit 1
     fi
 
+    set -x
     sudo certbot certonly \
-        -a webroot \
-        --webroot-path $PROJECT_ROOT/static \
+        --manual \
         --email $EMAIL \
-        -d $DOMAIN
+        --preferred-challenges=dns \
+        --manual-auth-hook $PROJECT_ROOT/$AUTH_HOOK \
+        --manual-cleanup-hook $PROJECT_ROOT/$CLEANUP_HOOK \
+        --cert-name $DOMAIN \
+        -d *.$DOMAIN \
+        -d $DOMAIN \
+        $dryrun
+    set +x
+
 elif [ "$cmd" = "renew" ]; then
-    sudo certbot renew
+    $0 new
+    exit 0
+elif [ "$cmd" = "copy" ]; then
+    echo "only copying..."
 else
     echo "command required"
     echo "  $0 new"
@@ -37,12 +65,3 @@ sudo cp /etc/letsencrypt/live/$DOMAIN/privkey.pem bin/key.pem
 # change to -rw-r--r-- permissions
 sudo chmod 644 bin/key.pem
 
-
-# Todo: setup auto dns cert challenge
-# https://serverfault.com/questions/750902/how-to-use-lets-encrypt-dns-challenge-validation
-# https://www.digitalocean.com/community/questions/change-dns-records-via-doctl
-# https://computingforgeeks.com/using-letsencrypt-wildcard-certificate-nginx-apache/
-# https://certbot.eff.org/docs/using.html#hooks
-#
-# ::: doctl compute domain records list jaemk.me
-# ::: doctl compute domain records list jaemk.me | rg challenge | awk '{print $1}' | xargs -I {} sh -c 'doctl compute domain records delete jaemk.me {} -f'
