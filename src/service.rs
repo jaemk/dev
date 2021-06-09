@@ -86,6 +86,7 @@ async fn forward(
 
             let mut res = forwarded_req.send_body(body).await.map_err(Error::from)?;
 
+            slog::info!(LOG, "proxy requests got back status {}", res.status());
             let mut client_resp = HttpResponse::build(res.status());
             for (header_name, header_value) in
                 res.headers().iter().filter(|(h, _)| *h != "connection")
@@ -93,7 +94,12 @@ async fn forward(
                 client_resp.header(header_name.clone(), header_value.clone());
             }
 
-            Ok(client_resp.body(res.body().await?))
+            // don't proxy the response if it's not-modified
+            if res.status() == 304 {
+                Ok(client_resp.finish())
+            } else {
+                Ok(client_resp.body(res.body().await?))
+            }
         }
         Some(d) => match d {
             // handle subdomain redirects
