@@ -1,5 +1,5 @@
 use actix_files::Files;
-use actix_web::{client, web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{body, client, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 use rustls::{NoClientAuth, ServerConfig};
 
@@ -14,11 +14,11 @@ async fn status() -> actix_web::Result<HttpResponse> {
 
 async fn forward(
     req: HttpRequest,
-    body: web::Bytes,
+    body: web::Payload,
     client: web::Data<client::Client>,
 ) -> Result<HttpResponse, Error> {
     let host = req.connection_info().host().to_string();
-    slog::info!(LOG, "forwarding for host: {}", host);
+    slog::info!(LOG, "forwarding for host: {}", host,);
     let parts = host.split(&CONFIG.this_host_name).collect::<Vec<_>>();
 
     let (sub_domain, port) = if parts.len() == 2 {
@@ -84,7 +84,10 @@ async fn forward(
                 forwarded_req
             };
 
-            let mut res = forwarded_req.send_body(body).await.map_err(Error::from)?;
+            let mut res = forwarded_req
+                .send_body(body::BodyStream::new(Box::new(body)))
+                .await
+                .map_err(Error::from)?;
 
             slog::info!(LOG, "proxy requests got back status {}", res.status());
             let mut client_resp = HttpResponse::build(res.status());
