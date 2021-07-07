@@ -6,9 +6,46 @@ use rustls::{NoClientAuth, ServerConfig};
 use crate::{CONFIG, LOG};
 
 async fn status() -> actix_web::Result<HttpResponse> {
+    let client = client::Client::default();
+
+    let badge = client
+        .get("https://badge-cache.kominick.com/status")
+        .send()
+        .await
+        .map(|resp| resp.status().as_u16())
+        .unwrap_or(500);
+    let kom = client
+        .get("https://kominick.com/status")
+        .send()
+        .await
+        .map(|resp| resp.status().as_u16())
+        .unwrap_or(500);
+    let james = client
+        .get("https://james.kominick.com/status")
+        .send()
+        .await
+        .map(|resp| resp.status().as_u16())
+        .unwrap_or(500);
+    let paste = client
+        .get("https://paste.kominick.com/status")
+        .send()
+        .await
+        .map(|resp| resp.status().as_u16())
+        .unwrap_or(500);
+    let transfer = client
+        .get("https://transfer.kominick.com/status")
+        .send()
+        .await
+        .map(|resp| resp.status().as_u16())
+        .unwrap_or(500);
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "status": "ok",
         "version": CONFIG.version,
+        "badge_status": badge,
+        "kom_status": kom,
+        "james_status": james,
+        "paste_status": paste,
+        "transfer_status": transfer,
     })))
 }
 
