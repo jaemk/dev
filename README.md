@@ -1,11 +1,12 @@
 ## dev server
 
-A simple dev http proxy that should just be an nginx configuration, but I wanted to build something.
+Simple dev http proxy config
 
 ---
 
 - `git.jaemk.me` -> `https://github.com/jaemk`
 - `git.jaemk.me/cached` -> `https://github.com/jaemk/cached`
+- `status.jaemk.me` -> check site /status endpoints
 - `jaemk.me` -> local dev server at `localhost:3003`
 
 ---
