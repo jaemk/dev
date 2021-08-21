@@ -1,13 +1,8 @@
-#![recursion_limit = "1024"]
-
-mod logger;
-mod service;
-
 use std::env;
 use std::fs;
 use std::io::Read;
-
-use slog::{o, Drain};
+use tracing_subscriber::fmt::format::FmtSpan;
+use warp::Filter;
 
 fn env_or(k: &str, default: &str) -> String {
     env::var(k).unwrap_or_else(|_| default.to_string())
@@ -15,28 +10,6 @@ fn env_or(k: &str, default: &str) -> String {
 
 lazy_static::lazy_static! {
     pub static ref CONFIG: Config = Config::load();
-
-    // The "base" logger that all crates should branch off of
-    pub static ref BASE_LOG: slog::Logger = {
-        let level: slog::Level = CONFIG.log_level
-                .parse()
-                .expect("invalid log_level");
-        if CONFIG.log_format == "pretty" {
-            let decorator = slog_term::TermDecorator::new().build();
-            let drain = slog_term::CompactFormat::new(decorator).build().fuse();
-            let drain = slog_async::Async::new(drain).build().fuse();
-            let drain = slog::LevelFilter::new(drain, level).fuse();
-            slog::Logger::root(drain, o!())
-        } else {
-            let drain = slog_json::Json::default(std::io::stderr()).fuse();
-            let drain = slog_async::Async::new(drain).build().fuse();
-            let drain = slog::LevelFilter::new(drain, level).fuse();
-            slog::Logger::root(drain, o!())
-        }
-    };
-
-    // Base logger
-    pub static ref LOG: slog::Logger = BASE_LOG.new(slog::o!("app" => "dev"));
 }
 
 #[derive(serde_derive::Deserialize)]
@@ -73,30 +46,75 @@ impl Config {
                 .expect("invalid port"),
         }
     }
-    pub fn initialize(&self) -> anyhow::Result<()> {
-        slog::info!(
-            LOG, "initialized config";
-            "version" => &CONFIG.version,
-            "host" => &CONFIG.host,
-            "port" => &CONFIG.port,
-            "log_format" => &CONFIG.log_format,
-            "log_level" => &CONFIG.log_level,
-            "this_host_name" => &CONFIG.this_host_name,
-            "dev_server_port" => &CONFIG.dev_server_port,
+
+    pub fn initialize(&self) {
+        tracing::info!(
+            target: "server",
+            version = %CONFIG.version,
+            host = %CONFIG.host,
+            port = %CONFIG.port,
+            log_format = %CONFIG.log_format,
+            log_level = %CONFIG.log_level,
+            this_host_name = %CONFIG.this_host_name,
+            dev_server_port = %CONFIG.dev_server_port,
+            "initialized config",
         );
-        Ok(())
     }
 }
 
-async fn run() -> anyhow::Result<()> {
-    CONFIG.initialize()?;
-    service::start().await?;
-    Ok(())
-}
-
-#[actix_web::main]
+#[tokio::main]
 async fn main() {
-    if let Err(e) = run().await {
-        slog::error!(LOG, "Error: {:?}", e);
+    // Filter traces based on the RUST_LOG env var, or, if it's not set,
+    // default to show the output of the example.
+    let filter = std::env::var("RUST_LOG")
+        .unwrap_or_else(|_| "tracing=debug,warp=debug,server=debug".to_owned());
+
+    // Configure the default `tracing` subscriber.
+    // The `fmt` subscriber from the `tracing-subscriber` crate logs `tracing`
+    // events to stdout. Other subscribers are available for integrating with
+    // distributed tracing systems such as OpenTelemetry.
+    tracing_subscriber::fmt()
+        // Use the filter we built above to determine which traces to record.
+        .with_env_filter(filter)
+        // Record an event when each span closes. This can be used to time our
+        // routes' durations!
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
+
+    async fn status() -> Result<impl warp::Reply, std::convert::Infallible> {
+        tracing::info!(target: "server", "checking server status");
+        let james = reqwest::get("https://james.kominick.com/status");
+        let transfer = reqwest::get("https://transfer.kominick.com/status");
+        let badge = reqwest::get("https://badge-cache.kominick.com/status");
+        let paste = reqwest::get("https://paste.kominick.com/status");
+        let soundlog = reqwest::get("https://soundlog.co/status");
+        let slackat = reqwest::get("https://slackat.com/status");
+        let (james, transfer, badge, paste, soundlog, slackat) =
+            futures::try_join!(james, transfer, badge, paste, soundlog, slackat)
+                .expect("status requests failed");
+        let james_status = james.status().as_u16();
+        let transfer_status = transfer.status().as_u16();
+        let badge_status = badge.status().as_u16();
+        let paste_status = paste.status().as_u16();
+        let soundlog_status = soundlog.status().as_u16();
+        let slackat_status = slackat.status().as_u16();
+
+        Ok(warp::reply::json(&serde_json::json!({
+            "james": james_status,
+            "transfer": transfer_status,
+            "badge": badge_status,
+            "paste": paste_status,
+            "soundlog": soundlog_status,
+            "slackat": slackat_status,
+        })))
     }
+
+    CONFIG.initialize();
+    let status = warp::get().and_then(status);
+    let host = format!("{}:{}", CONFIG.host, CONFIG.port)
+        .parse::<std::net::SocketAddr>()
+        .expect("invalid host");
+    warp::serve(status.with(warp::filters::log::log("server")))
+        .run(host)
+        .await;
 }

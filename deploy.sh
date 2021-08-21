@@ -25,6 +25,7 @@ sudo cp nginx/jaemk.conf /etc/nginx/sites-available/jaemk.conf
 sudo ln -sf /etc/nginx/sites-available/jaemk.conf /etc/nginx/sites-enabled/jaemk.conf
 
 sudo nginx -t
+sudo systemctl enable nginx
 sudo systemctl restart nginx
 
 ./logs.sh
