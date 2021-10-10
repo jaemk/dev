@@ -68,8 +68,9 @@ async fn main() {
         let soundlog = reqwest::get("https://soundlog.co/status");
         let slackat = reqwest::get("https://slackat.com/status");
         let ritide = reqwest::get("https://ritide.kominick.com/status");
-        let (james, transfer, badge, paste, soundlog, slackat, ritide) =
-            futures::try_join!(james, transfer, badge, paste, soundlog, slackat, ritide)
+        let outside = reqwest::get("https://outside.kominick.com/status");
+        let (james, transfer, badge, paste, soundlog, slackat, ritide, outside) =
+            futures::try_join!(james, transfer, badge, paste, soundlog, slackat, ritide, outside)
                 .expect("status requests failed");
         let james_status = james.status().as_u16();
         let transfer_status = transfer.status().as_u16();
@@ -78,6 +79,7 @@ async fn main() {
         let soundlog_status = soundlog.status().as_u16();
         let slackat_status = slackat.status().as_u16();
         let ritide_status = ritide.status().as_u16();
+        let outside_status = outside.status().as_u16();
 
         Ok(warp::reply::json(&serde_json::json!({
             "james": james_status,
@@ -87,6 +89,7 @@ async fn main() {
             "soundlog": soundlog_status,
             "slackat": slackat_status,
             "ritide": ritide_status,
+            "outside": outside_status,
         })))
     }
 
